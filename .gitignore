@@ -4,12 +4,11 @@ Cargo.lock
 *.pdb
 .DS_Store
 
-/target
-Cargo.lock
-*.rs.bk
-*.pdb
-.DS_Store
+# Swift build artifacts
 ui/.build/
 ui/.swiftpm/
 *.xcuserstate
 *.xcworkspace/xcuserdata/
+
+# SwiftLint cache
+.swiftlint_cache/
