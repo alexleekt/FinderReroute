@@ -18,6 +18,10 @@ impl AppLauncher {
     ///
     /// Uses `spawn()` instead of `output()` so the event-tap callback
     /// returns immediately and does not trigger a tap timeout.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`LauncherError::SpawnFailed`] if the `open` command fails to spawn.
     pub fn launch(&self) -> Result<(), LauncherError> {
         info!("Launching '{}' via open -a", self.app_name);
 
@@ -36,6 +40,10 @@ impl AppLauncher {
     ///
     /// Uses `spawn()` instead of `output()` so the event-tap callback
     /// returns immediately and does not trigger a tap timeout.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`LauncherError::SpawnFailed`] if the `open` command fails to spawn.
     pub fn open_with(&self, path: &str) -> Result<(), LauncherError> {
         info!("Opening '{}' with '{}'", path, self.app_name);
 

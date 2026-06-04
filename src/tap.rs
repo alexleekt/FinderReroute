@@ -11,7 +11,7 @@ use crate::detector::DockDetector;
 use crate::launcher::AppLauncher;
 use crate::RewireState;
 
-/// Manages the CGEventTap lifecycle.
+/// Manages the `CGEventTap` lifecycle.
 pub struct EventTap {
     #[allow(dead_code)]
     tap: CGEventTap<'static>,
@@ -19,6 +19,11 @@ pub struct EventTap {
 
 impl EventTap {
     /// Create and install a new event tap that intercepts left-mouse-down events.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`EventTapError::CreateFailed`] if the `CGEventTap` cannot be created,
+    /// or [`EventTapError::RunLoopSourceFailed`] if the run-loop source fails.
     pub fn new(
         state: Arc<RewireState>,
         detector: DockDetector,
@@ -35,12 +40,12 @@ impl EventTap {
                 handle_event(event_type, event, &state, &detector, &launcher)
             },
         )
-        .map_err(|_| EventTapError::CreateFailed)?;
+        .map_err(|()| EventTapError::CreateFailed)?;
 
         let run_loop_source = tap
             .mach_port()
             .create_runloop_source(0)
-            .map_err(|_| EventTapError::RunLoopSourceFailed)?;
+            .map_err(|()| EventTapError::RunLoopSourceFailed)?;
 
         let run_loop = CFRunLoop::get_current();
         run_loop.add_source(&run_loop_source, unsafe { kCFRunLoopCommonModes });
@@ -50,7 +55,7 @@ impl EventTap {
         Ok(Self { tap })
     }
 
-    /// Run the current thread's CFRunLoop. This blocks until the process exits.
+    /// Run the current thread's `CFRunLoop`. This blocks until the process exits.
     pub fn run(&self) {
         info!("Running CFRunLoop — click Finder to launch target app.");
         CFRunLoop::run_current();
@@ -66,7 +71,7 @@ pub enum EventTapError {
     RunLoopSourceFailed,
 }
 
-/// Per-event callback invoked by the CGEventTap.
+/// Per-event callback invoked by the `CGEventTap`.
 fn handle_event(
     event_type: CGEventType,
     event: &CGEvent,
@@ -76,12 +81,12 @@ fn handle_event(
 ) -> CallbackResult {
     // Handle special out-of-band events that disable the tap.
     match event_type as u32 {
-        0xFFFFFFFE => {
+        0xFFFF_FFFE => {
             // TapDisabledByTimeout
             warn!("Event tap disabled by timeout.");
             return CallbackResult::Keep;
         }
-        0xFFFFFFFF => {
+        0xFFFF_FFFF => {
             // TapDisabledByUserInput
             warn!("Event tap disabled by user input.");
             return CallbackResult::Keep;
@@ -107,7 +112,7 @@ fn handle_event(
         info!("Finder click detected — consuming event and launching target app.");
 
         if let Err(e) = launcher.launch() {
-            error!("Failed to launch target app: {}", e);
+            error!("Failed to launch target app: {e}");
         }
 
         // Consume the event so the Dock never sees it.

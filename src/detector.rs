@@ -14,6 +14,7 @@ pub struct DockDetector {
 }
 
 impl DockDetector {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             enabled: AtomicBool::new(true),
@@ -29,59 +30,52 @@ impl DockDetector {
         }
 
         // Hit-test the element at the click position.
-        let system = match system_wide() {
-            Some(s) => s,
-            None => {
-                trace!("system_wide accessibility element not available");
-                return false;
-            }
+        let Some(system) = system_wide() else {
+            trace!("system_wide accessibility element not available");
+            return false;
         };
 
+        #[allow(clippy::cast_possible_truncation)]
         let element = match system.element_at_position(x as f32, y as f32) {
             Ok(Some(e)) => e,
             Ok(None) => {
-                trace!("no element at ({}, {})", x, y);
+                trace!("no element at ({x}, {y})");
                 return false;
             }
             Err(e) => {
-                trace!("AX error at ({}, {}): {:?}", x, y, e);
+                trace!("AX error at ({x}, {y}): {e:?}");
                 return false;
             }
         };
 
         // Check subrole — must be an app dock item.
-        let subrole = match element.string_attribute(axuielement::ax_attribute::AX_SUBROLE_ATTRIBUTE) {
-            Ok(Some(s)) => s,
-            _ => {
-                trace!("element has no subrole — not a Dock item");
-                return false;
-            }
+        let Ok(Some(subrole)) =
+            element.string_attribute(axuielement::ax_attribute::AX_SUBROLE_ATTRIBUTE)
+        else {
+            trace!("element has no subrole — not a Dock item");
+            return false;
         };
 
         if subrole != self.app_dock_subrole {
-            trace!("subrole='{}' — not an app dock item", subrole);
+            trace!("subrole='{subrole}' — not an app dock item");
             return false;
         }
 
         // Check title — must be "Finder".
-        let title = match element.string_attribute(axuielement::ax_attribute::AX_TITLE_ATTRIBUTE) {
-            Ok(Some(t)) => t,
-            _ => {
-                trace!("dock app item has no title");
-                return false;
-            }
+        let Ok(Some(title)) =
+            element.string_attribute(axuielement::ax_attribute::AX_TITLE_ATTRIBUTE)
+        else {
+            trace!("dock app item has no title");
+            return false;
         };
 
-        debug!(
-            "Dock app item at ({}, {}): title='{}' subrole='{}'",
-            x, y, title, subrole
-        );
+        debug!("Dock app item at ({x}, {y}): title='{title}' subrole='{subrole}'");
 
         if title == self.finder_title {
             return true;
         }
 
-        trace!("title='{}' — not Finder", title);
+        trace!("title='{title}' — not Finder");
         false
     }
 

@@ -2,6 +2,11 @@
 name = "finder-reroute"
 version = "0.1.0"
 edition = "2021"
+description = "macOS utility that reroutes Finder clicks to a preferred file manager"
+license = "MIT"
+repository = "https://github.com/alexleekt/FinderReroute"
+keywords = ["macos", "finder", "file-manager", "dock", "accessibility"]
+categories = ["command-line-utilities"]
 
 [dependencies]
 core-graphics = "0.25"

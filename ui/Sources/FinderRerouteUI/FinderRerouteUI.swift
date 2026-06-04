@@ -27,7 +27,7 @@ class AppState: ObservableObject {
     init() {
         let home = FileManager.default.homeDirectoryForCurrentUser.path
         self.configPath = "\(home)/.config/finder-reroute/config.json"
-        
+
         // Find the bundled Rust binary relative to the SwiftUI app executable
         if let executablePath = Bundle.main.executableURL?.deletingLastPathComponent().appendingPathComponent("finder-reroute").path {
             self.rustBinaryPath = executablePath
@@ -133,12 +133,12 @@ class AppState: ObservableObject {
         let workspace = NSWorkspace.shared
 
         let knownBundleIDs = [
-            "com.asiafu.Bloom",
-            "com.cocoatech.PathFinder",
-            "com.binarynights.ForkLift",
-            "com.eltima.CommanderOne",
-            "com.panic.Transmit",
-            "com.qiuyingzhe.Files",
+            "com.asiafu.Bloom",      // Bloom
+            "com.cocoatech.PathFinder", // Path Finder
+            "com.binarynights.ForkLift", // ForkLift
+            "com.eltima.CommanderOne", // Commander One
+            "com.panic.Transmit",      // Transmit
+            "com.qiuyingzhe.Files"   // Files (if exists)
         ]
 
         for bundleID in knownBundleIDs {

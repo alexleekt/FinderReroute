@@ -1,8 +1,9 @@
-use finder_reroute::{has_accessibility_permission, prompt_accessibility_permission, RewireState};
 use finder_reroute::detector::DockDetector;
 use finder_reroute::launcher::AppLauncher;
 use finder_reroute::tap::EventTap;
+use finder_reroute::{has_accessibility_permission, prompt_accessibility_permission, RewireState};
 
+#[allow(clippy::too_many_lines)]
 fn main() {
     env_logger::init();
 
@@ -17,7 +18,10 @@ fn main() {
                     Ok(()) => {
                         println!("✓ LaunchAgent installed.");
                         println!("  The app will auto-start on your next login.");
-                        println!("  Logs: /tmp/{}.out.log", finder_reroute::launchd::LAUNCHD_LABEL);
+                        println!(
+                            "  Logs: /tmp/{}.out.log",
+                            finder_reroute::launchd::LAUNCHD_LABEL
+                        );
                         println!();
                         println!("IMPORTANT: Grant Accessibility permission to the app.");
                         println!("  System Settings → Privacy & Security → Accessibility → +");
@@ -25,7 +29,7 @@ fn main() {
                         println!("  OR: {}", finder_reroute::launchd::binary_path().display());
                     }
                     Err(e) => {
-                        eprintln!("ERROR: {}", e);
+                        eprintln!("ERROR: {e}");
                         std::process::exit(1);
                     }
                 }
@@ -38,7 +42,7 @@ fn main() {
                         println!("✓ LaunchAgent uninstalled.");
                     }
                     Err(e) => {
-                        eprintln!("ERROR: {}", e);
+                        eprintln!("ERROR: {e}");
                         std::process::exit(1);
                     }
                 }
@@ -64,7 +68,7 @@ fn main() {
                         }
                     }
                     Err(e) => {
-                        eprintln!("ERROR: {}", e);
+                        eprintln!("ERROR: {e}");
                         std::process::exit(1);
                     }
                 }
@@ -79,7 +83,7 @@ fn main() {
                         println!("  Reload your shell or open a new terminal.");
                     }
                     Err(e) => {
-                        eprintln!("ERROR: {}", e);
+                        eprintln!("ERROR: {e}");
                         std::process::exit(1);
                     }
                 }
@@ -123,7 +127,7 @@ fn main() {
             tap
         }
         Err(e) => {
-            eprintln!("ERROR: Failed to create event tap: {}", e);
+            eprintln!("ERROR: Failed to create event tap: {e}");
             eprintln!("Make sure Accessibility permission is granted.");
             std::process::exit(1);
         }
@@ -148,4 +152,3 @@ fn print_help() {
     println!();
     println!("Requires: Accessibility + Input Monitoring permissions.");
 }
-

@@ -9,6 +9,7 @@ use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 
 /// Check if the process has been granted Accessibility permission.
+#[must_use] 
 pub fn has_accessibility_permission() -> bool {
     axuielement::is_process_trusted()
 }

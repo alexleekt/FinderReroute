@@ -1,6 +1,5 @@
 use std::fs;
 use std::path::PathBuf;
-use std::process::Command;
 
 /// Detect the current shell.
 fn detect_shell() -> Option<String> {
@@ -8,8 +7,9 @@ fn detect_shell() -> Option<String> {
 }
 
 /// Check if the user is using Fish shell.
-/// Fish sets the FISH_VERSION environment variable, which is the most
+/// Fish sets the `FISH_VERSION` environment variable, which is the most
 /// reliable way to detect it even when $SHELL points to zsh/bash.
+#[must_use]
 pub fn is_fish() -> bool {
     std::env::var("FISH_VERSION").is_ok()
 }
@@ -19,9 +19,7 @@ fn is_zsh() -> bool {
     if is_fish() {
         return false;
     }
-    detect_shell()
-        .map(|s| s.contains("zsh"))
-        .unwrap_or(false)
+    detect_shell().is_some_and(|s| s.contains("zsh"))
 }
 
 /// Check if the user is using Bash shell.
@@ -29,9 +27,7 @@ fn is_bash() -> bool {
     if is_fish() {
         return false;
     }
-    detect_shell()
-        .map(|s| s.contains("bash"))
-        .unwrap_or(false)
+    detect_shell().is_some_and(|s| s.contains("bash"))
 }
 
 /// Path to the shell config file.
@@ -55,7 +51,7 @@ const SHELL_MARKER: &str = "# FinderReroute: open command override";
 fn shell_override_code() -> String {
     if is_fish() {
         format!(
-            r#"{}
+            r#"{SHELL_MARKER}
 function open
     if test -d "$argv[1]"
         command open -a Bloom $argv
@@ -63,12 +59,11 @@ function open
         command open $argv
     end
 end
-"#,
-            SHELL_MARKER
+"#
         )
     } else {
         format!(
-            r#"{}
+            r#"{SHELL_MARKER}
 open() {{
     if [ -d "$1" ]; then
         command open -a Bloom "$@"
@@ -76,28 +71,31 @@ open() {{
         command open "$@"
     fi
 }}
-"#,
-            SHELL_MARKER
+"#
         )
     }
 }
 
 /// Install the shell override so `open` on directories opens in Bloom.
+///
+/// # Errors
+///
+/// Returns an error if the shell config file cannot be read or written.
 pub fn install() -> Result<(), String> {
-    let config = config_path().ok_or("Could not detect shell config file. Supported: fish, zsh, bash")?;
-    
+    let config =
+        config_path().ok_or("Could not detect shell config file. Supported: fish, zsh, bash")?;
+
     // Create parent directories if needed.
     if let Some(parent) = config.parent() {
         if !parent.exists() {
             fs::create_dir_all(parent)
-                .map_err(|e| format!("Failed to create config directory: {}", e))?;
+                .map_err(|e| format!("Failed to create config directory: {e}"))?;
         }
     }
 
     // Read existing content.
     let mut content = if config.exists() {
-        fs::read_to_string(&config)
-            .map_err(|e| format!("Failed to read config file: {}", e))?
+        fs::read_to_string(&config).map_err(|e| format!("Failed to read config file: {e}"))?
     } else {
         String::new()
     };
@@ -111,13 +109,16 @@ pub fn install() -> Result<(), String> {
     content.push('\n');
 
     // Write back.
-    fs::write(&config, content)
-        .map_err(|e| format!("Failed to write config file: {}", e))?;
+    fs::write(&config, content).map_err(|e| format!("Failed to write config file: {e}"))?;
 
     Ok(())
 }
 
 /// Uninstall the shell override.
+///
+/// # Errors
+///
+/// Returns an error if the shell config file cannot be read or written.
 pub fn uninstall() -> Result<(), String> {
     let config = config_path().ok_or("Could not detect shell config file")?;
 
@@ -125,8 +126,8 @@ pub fn uninstall() -> Result<(), String> {
         return Err("Shell config file not found".to_string());
     }
 
-    let content = fs::read_to_string(&config)
-        .map_err(|e| format!("Failed to read config file: {}", e))?;
+    let content =
+        fs::read_to_string(&config).map_err(|e| format!("Failed to read config file: {e}"))?;
 
     let new_content = remove_override_from_content(&content);
 
@@ -134,26 +135,24 @@ pub fn uninstall() -> Result<(), String> {
         return Err("Shell override not found in config file".to_string());
     }
 
-    fs::write(&config, new_content)
-        .map_err(|e| format!("Failed to write config file: {}", e))?;
+    fs::write(&config, new_content).map_err(|e| format!("Failed to write config file: {e}"))?;
 
     Ok(())
 }
 
 /// Check if the shell override is installed.
+#[must_use]
 pub fn is_installed() -> bool {
-    let config = match config_path() {
-        Some(p) => p,
-        None => return false,
+    let Some(config) = config_path() else {
+        return false;
     };
 
     if !config.exists() {
         return false;
     }
 
-    let content = match fs::read_to_string(&config) {
-        Ok(c) => c,
-        Err(_) => return false,
+    let Ok(content) = fs::read_to_string(&config) else {
+        return false;
     };
 
     content.contains(SHELL_MARKER)
@@ -162,12 +161,12 @@ pub fn is_installed() -> bool {
 /// Print shell status.
 pub fn print_status() {
     let shell = detect_shell().unwrap_or_else(|| "unknown".to_string());
-    let config = config_path().map(|p| p.display().to_string()).unwrap_or_else(|| "unknown".to_string());
+    let config = config_path().map_or_else(|| "unknown".to_string(), |p| p.display().to_string());
     let installed = is_installed();
 
     println!("Shell override status:");
-    println!("  Shell:     {}", shell);
-    println!("  Config:    {}", config);
+    println!("  Shell:     {shell}");
+    println!("  Config:    {config}");
     println!("  Installed: {}", if installed { "yes" } else { "no" });
     if installed {
         println!("  Behavior:  Directories open with Bloom; files use default app.");
@@ -186,7 +185,7 @@ fn remove_override_from_content(content: &str) -> String {
         }
         if skip {
             // Skip until we hit a blank line or end of our block.
-            // We detect the end by checking if the line is a comment marker 
+            // We detect the end by checking if the line is a comment marker
             // or a function definition that doesn't belong to our block.
             if line.trim().is_empty() {
                 skip = false;
