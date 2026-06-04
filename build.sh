@@ -31,6 +31,14 @@ cp "${SCRIPT_DIR}/ui/.build/debug/${APP_NAME}UI" "${MACOS_DIR}/${APP_NAME}"
 chmod +x "${MACOS_DIR}/finder-reroute"
 chmod +x "${MACOS_DIR}/${APP_NAME}"
 
+# Create app icon
+echo "Creating app icon..."
+if command -v python3 &> /dev/null && python3 -c "from PIL import Image" 2>/dev/null; then
+    python3 "${SCRIPT_DIR}/create_icon.py"
+else
+    echo "Warning: Python3 with PIL not available. Skipping icon creation."
+fi
+
 # Create Info.plist if not exists
 if [ ! -f "${APP_BUNDLE}/Contents/Info.plist" ]; then
     echo "Creating Info.plist..."
@@ -55,6 +63,8 @@ if [ ! -f "${APP_BUNDLE}/Contents/Info.plist" ]; then
     <string>0.1.0</string>
     <key>CFBundleVersion</key>
     <string>1</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
     <key>LSMinimumSystemVersion</key>
     <string>13.0</string>
     <key>LSUIElement</key>
