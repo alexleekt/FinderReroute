@@ -148,21 +148,27 @@ The app will now start automatically on every login.
 │       │   └── finder-reroute      # Rust interceptor (bundled)
 │       └── Resources/
 │           └── AppIcon.icns         # Custom folder icon
+├── Cargo.toml                  # Dependencies + Clippy lint config
+├── .gitignore
+├── build.sh                      # Build script
+├── create_icon.py                # Icon generation script
 ├── src/                          # Rust source
 │   ├── main.rs                   # CLI entry point
 │   ├── lib.rs                    # Library root + shared state
 │   ├── tap.rs                    # CGEventTap installation
 │   ├── detector.rs               # Dock/Finder detection
 │   ├── launcher.rs               # App launching
+│   ├── shell.rs                  # Shell override injection
 │   ├── launchd.rs                # LaunchAgent management
-│   └── shell.rs                  # Shell override injection
+│   └── bin/
+│       └── test_detector.rs      # Diagnostic tool for Dock element scanning
 ├── ui/                           # SwiftUI source
-│   └── Sources/
+│   ├── Package.swift
+│   ├── .swiftlint.yml
+│   └── Sources/FinderRerouteUI/
 │       ├── FinderRerouteUI.swift  # App entry + AppState
 │       └── ContentView.swift      # Menu bar UI
-├── build.sh                      # Build script
-├── create_icon.py                # Icon generation script
-├── Cargo.toml
+├── RESEARCH.md                   # Research notes on prior art
 └── README.md
 ```
 
@@ -193,6 +199,46 @@ The app will now start automatically on every login.
 - Check LaunchAgent status: `/Applications/FinderReroute.app/Contents/MacOS/finder-reroute --status`
 - Reinstall: `/Applications/FinderReroute.app/Contents/MacOS/finder-reroute --install`
 - Check logs: `tail -f /tmp/com.alexleekt.finder-reroute.out.log`
+
+## Development
+
+### Linting
+
+The project enforces code quality via **Clippy** (Rust) and **SwiftLint** (Swift).
+
+**Rust — Clippy:**
+
+```bash
+# Check all targets (lib, main binary, test_detector binary)
+cargo clippy
+
+# Auto-fix trivial issues
+cargo clippy --fix --allow-dirty --allow-staged
+```
+
+Clippy is configured in `Cargo.toml` with the `all`, `pedantic`, `nursery`, and `cargo` lint groups at `warn` level.
+
+**Swift — SwiftLint:**
+
+```bash
+cd ui
+swiftlint lint
+
+# Auto-fix (where supported)
+swiftlint lint --fix
+```
+
+SwiftLint is configured in `ui/.swiftlint.yml` with standard opt-in rules and sensible thresholds.
+
+### Running the Swift UI
+
+```bash
+cd ui
+swift build
+swift run
+```
+
+The Swift UI provides a menu-bar interface for starting/stopping the interceptor and selecting the target app.
 
 ## Future Work
 
