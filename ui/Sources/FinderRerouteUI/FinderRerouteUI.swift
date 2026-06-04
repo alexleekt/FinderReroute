@@ -5,9 +5,11 @@ struct FinderRerouteUIApp: App {
     @StateObject private var appState = AppState()
 
     var body: some Scene {
-        MenuBarExtra("FinderReroute", systemImage: appState.iconName) {
+        MenuBarExtra {
             ContentView()
                 .environmentObject(appState)
+        } label: {
+            Image(systemName: "folder")
         }
         .menuBarExtraStyle(.window)
     }
@@ -18,8 +20,6 @@ class AppState: ObservableObject {
     @Published var selectedApp: String
     @Published var availableApps: [String] = ["Finder", "Bloom"]
     @Published var statusMessage = "Ready"
-    @Published var iconName = "folder"
-
     private var process: Process?
     private let rustBinaryPath: String
     private let configPath: String
@@ -27,15 +27,19 @@ class AppState: ObservableObject {
     init() {
         let home = FileManager.default.homeDirectoryForCurrentUser.path
         self.configPath = "\(home)/.config/finder-reroute/config.json"
-        self.rustBinaryPath = "/Users/alexleekt/git/FinderReroute/target/release/finder-reroute"
+        
+        // Find the bundled Rust binary relative to the SwiftUI app executable
+        if let executablePath = Bundle.main.executableURL?.deletingLastPathComponent().appendingPathComponent("finder-reroute").path {
+            self.rustBinaryPath = executablePath
+        } else {
+            // Fallback to development path
+            self.rustBinaryPath = "/Users/alexleekt/git/FinderReroute/target/release/finder-reroute"
+        }
 
-        // Load saved selection
         let saved = Self.loadConfig(configPath)
         self.selectedApp = saved?["app"] as? String ?? "Bloom"
 
-        // Check if already running
-        self.isRunning = Self.isRustProcessRunning()
-        self.updateIcon()
+        self.isRunning = false
     }
 
     private static func loadConfig(_ path: String) -> [String: Any]? {
@@ -54,22 +58,6 @@ class AppState: ObservableObject {
         }
     }
 
-    private static func isRustProcessRunning() -> Bool {
-        let task = Process()
-        task.launchPath = "/usr/bin/pgrep"
-        task.arguments = ["-f", "finder-reroute"]
-        let pipe = Pipe()
-        task.standardOutput = pipe
-        task.standardError = Pipe()
-        try? task.run()
-        task.waitUntilExit()
-        return task.terminationStatus == 0
-    }
-
-    private func updateIcon() {
-        iconName = isRunning ? "folder.badge.checkmark" : "folder"
-    }
-
     func toggleRunning() {
         if isRunning {
             stop()
@@ -79,17 +67,14 @@ class AppState: ObservableObject {
     }
 
     func start() {
-        // Save config
         Self.saveConfig(configPath, ["app": selectedApp])
 
-        // Start the Rust binary
         let task = Process()
         task.launchPath = rustBinaryPath
         task.environment = [
             "RUST_LOG": "info",
             "HOME": FileManager.default.homeDirectoryForCurrentUser.path
         ]
-        // Don't capture output — let it run in background
         let null = FileHandle.nullDevice
         task.standardOutput = null
         task.standardError = null
@@ -102,11 +87,9 @@ class AppState: ObservableObject {
         } catch {
             statusMessage = "Failed to start: \(error.localizedDescription)"
         }
-        updateIcon()
     }
 
     func stop() {
-        // Kill via pkill
         let task = Process()
         task.launchPath = "/usr/bin/pkill"
         task.arguments = ["-f", rustBinaryPath]
@@ -117,7 +100,6 @@ class AppState: ObservableObject {
         process = nil
         isRunning = false
         statusMessage = "Stopped"
-        updateIcon()
     }
 
     func selectApp(_ app: String) {
@@ -141,17 +123,22 @@ class AppState: ObservableObject {
         }
     }
 
+    func quit() {
+        stop()
+        NSApplication.shared.terminate(nil)
+    }
+
     private static func discoverFileManagerApps() -> [String] {
         var apps = ["Finder"]
         let workspace = NSWorkspace.shared
 
         let knownBundleIDs = [
-            "com.asiafu.Bloom",      // Bloom
-            "com.cocoatech.PathFinder", // Path Finder
-            "com.binarynights.ForkLift", // ForkLift
-            "com.eltima.CommanderOne", // Commander One
-            "com.panic.Transmit",      // Transmit
-            "com.qiuyingzhe.Files",   // Files (if exists)
+            "com.asiafu.Bloom",
+            "com.cocoatech.PathFinder",
+            "com.binarynights.ForkLift",
+            "com.eltima.CommanderOne",
+            "com.panic.Transmit",
+            "com.qiuyingzhe.Files",
         ]
 
         for bundleID in knownBundleIDs {
@@ -164,10 +151,5 @@ class AppState: ObservableObject {
         }
 
         return apps
-    }
-
-    func quit() {
-        stop()
-        NSApplication.shared.terminate(nil)
     }
 }

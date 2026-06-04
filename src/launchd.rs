@@ -18,12 +18,19 @@ pub fn plist_path() -> PathBuf {
 /// This is public so the CLI can show the exact path to the user for
 /// granting Accessibility permission.
 pub fn binary_path() -> PathBuf {
+    // In the app bundle, the executable is at FinderReroute.app/Contents/MacOS/FinderReroute
     std::env::current_exe().expect("Failed to get current executable path")
+}
+
+/// Returns the path to the .app bundle in /Applications.
+pub fn app_bundle_path() -> PathBuf {
+    PathBuf::from("/Applications/FinderReroute.app")
 }
 
 /// Generate the LaunchAgent plist XML.
 fn plist_content() -> String {
-    let binary = binary_path().display().to_string();
+    let app_path = app_bundle_path().display().to_string();
+    let binary = format!("{}/Contents/MacOS/FinderReroute", app_path);
     format!(
         r#"<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -137,8 +144,9 @@ pub fn print_status() {
     let running = is_running();
 
     println!("LaunchAgent status:");
-    println!("  Installed: {}", if installed { "yes" } else { "no" });
-    println!("  Running:   {}", if running { "yes" } else { "no" });
-    println!("  Plist:     {}", plist_path().display());
-    println!("  Binary:    {}", binary_path().display());
+    println!("  Installed:   {}", if installed { "yes" } else { "no" });
+    println!("  Running:     {}", if running { "yes" } else { "no" });
+    println!("  Plist:       {}", plist_path().display());
+    println!("  App Bundle:  /Applications/FinderReroute.app");
+    println!("  Binary:      {}", binary_path().display());
 }

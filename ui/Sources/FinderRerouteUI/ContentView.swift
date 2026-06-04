@@ -7,7 +7,7 @@ struct ContentView: View {
         VStack(alignment: .leading, spacing: 12) {
             // Header
             HStack {
-                Image(systemName: appState.iconName)
+                Image(systemName: "folder")
                     .foregroundColor(appState.isRunning ? .green : .secondary)
                 Text("FinderReroute")
                     .font(.headline)
@@ -61,12 +61,5 @@ struct ContentView: View {
         }
         .padding()
         .frame(width: 220)
-    }
-}
-
-struct ContentView_Previews: PreviewProvider {
-    static var previews: some View {
-        ContentView()
-            .environmentObject(AppState())
     }
 }

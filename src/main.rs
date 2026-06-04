@@ -19,9 +19,10 @@ fn main() {
                         println!("  The app will auto-start on your next login.");
                         println!("  Logs: /tmp/{}.out.log", finder_reroute::launchd::LAUNCHD_LABEL);
                         println!();
-                        println!("IMPORTANT: Grant Accessibility permission for the auto-start binary.");
+                        println!("IMPORTANT: Grant Accessibility permission to the app.");
                         println!("  System Settings → Privacy & Security → Accessibility → +");
-                        println!("  Add: {}", finder_reroute::launchd::binary_path().display());
+                        println!("  Add: /Applications/FinderReroute.app");
+                        println!("  OR: {}", finder_reroute::launchd::binary_path().display());
                     }
                     Err(e) => {
                         eprintln!("ERROR: {}", e);
