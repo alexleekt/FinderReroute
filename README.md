@@ -2,6 +2,8 @@
 
 A macOS app that intercepts clicks on the **Finder** icon in the Dock and launches an alternative file manager (e.g., **Bloom**) instead.
 
+![FinderReroute Icon](FinderReroute.app/Contents/Resources/AppIcon.icns)
+
 ## How It Works
 
 ```
@@ -18,6 +20,14 @@ Consume the event (Dock never sees it)
 Launch target app via `open -a`
 ```
 
+## Features
+
+- 🎯 **Intercept Finder clicks** — Clicking the Finder icon in the Dock opens your chosen file manager
+- 🎨 **Menu bar UI** — Simple folder icon in the menu bar to toggle interception and select target app
+- 🚀 **Auto-start** — Optional LaunchAgent to start automatically on login
+- 🐚 **Shell override** — Make `open ~/folder` use your chosen file manager in Terminal
+- ⚙️ **Configurable** — Choose any installed file manager (Bloom, Path Finder, ForkLift, etc.)
+
 ## Tech Stack
 
 | Layer | Technology | Purpose |
@@ -29,20 +39,19 @@ Launch target app via `open -a`
 | UI | SwiftUI + `MenuBarExtra` | Menu bar app with app selector and toggle |
 | Auto-start | `launchd` LaunchAgent | Runs automatically on login |
 
-## Required macOS Permissions
+## Requirements
 
-- **Accessibility** — Required for `AXUIElementCopyElementAtPosition`
-- **Input Monitoring** — Required for `CGEventTap` (HID-level tap)
+- macOS 13.0+
+- **Accessibility** permission — Required for `AXUIElementCopyElementAtPosition`
+- **Input Monitoring** permission — Required for `CGEventTap` (HID-level tap)
 
-The app will exit on startup if Accessibility is not granted, prompting the user to enable it in:
-
-> System Settings → Privacy & Security → Accessibility
+The app will prompt you to grant these permissions on first launch.
 
 ## Installation
 
 ### Option 1: Download the .app bundle
 
-1. Download `FinderReroute.app`
+1. Download `FinderReroute.app` from [Releases](../../releases)
 2. Drag it to `/Applications/`
 3. Launch it — the folder icon appears in your menu bar
 4. Click the icon and toggle **"Intercept Finder clicks"**
@@ -51,7 +60,11 @@ The app will exit on startup if Accessibility is not granted, prompting the user
 ### Option 2: Build from source
 
 ```bash
-# Build everything
+# Clone the repo
+git clone https://github.com/alexleekt/FinderReroute.git
+cd FinderReroute
+
+# Build everything (Rust + SwiftUI + icon)
 ./build.sh
 
 # Copy to /Applications
@@ -61,12 +74,26 @@ cp -R FinderReroute.app /Applications/
 /Applications/FinderReroute.app/Contents/MacOS/FinderReroute
 ```
 
-## Auto-Start on Login
+**Prerequisites for building:**
+- [Rust](https://rustup.rs/) (latest stable)
+- [Swift](https://developer.apple.com/swift/) (Xcode Command Line Tools)
+- Python 3 with PIL (for icon generation)
 
-The app can install a **LaunchAgent** so it starts automatically on login:
+## Usage
+
+### Menu Bar
+
+1. Look for the **folder icon** in your menu bar (top-right)
+2. Click it to open the control panel
+3. Select your preferred file manager from the dropdown
+4. Toggle **"Intercept Finder clicks"** to start/stop interception
+
+### CLI Commands
+
+The bundled Rust binary supports CLI commands:
 
 ```bash
-# Install auto-start
+# Install auto-start LaunchAgent
 /Applications/FinderReroute.app/Contents/MacOS/finder-reroute --install
 
 # Check status
@@ -74,61 +101,113 @@ The app can install a **LaunchAgent** so it starts automatically on login:
 
 # Remove auto-start
 /Applications/FinderReroute.app/Contents/MacOS/finder-reroute --uninstall
+
+# Setup shell override
+/Applications/FinderReroute.app/Contents/MacOS/finder-reroute --setup-shell
+
+# Remove shell override
+/Applications/FinderReroute.app/Contents/MacOS/finder-reroute --uninstall-shell
 ```
 
-After `--install`, you must grant Accessibility permission to the app:
+### Shell Override
+
+The shell override makes `open ~/folder` in Terminal use your chosen file manager instead of Finder:
+
+```bash
+# Setup (supports Fish, Zsh, Bash)
+/Applications/FinderReroute.app/Contents/MacOS/finder-reroute --setup-shell
+
+# Examples after setup
+open ~/Downloads        # Opens in Bloom (or your chosen app)
+open file.txt           # Uses default app (unchanged)
+open -a Finder ~/Downloads  # Force Finder (override bypassed)
+```
+
+## Auto-Start on Login
+
+After installing the LaunchAgent:
+
+```bash
+/Applications/FinderReroute.app/Contents/MacOS/finder-reroute --install
+```
+
+Grant Accessibility permission to the app:
 
 > System Settings → Privacy & Security → Accessibility → + → Add `FinderReroute.app`
 
-## Shell Override (Optional)
-
-You can also make the `open` command in Terminal open folders with Bloom instead of Finder:
-
-```bash
-/Applications/FinderReroute.app/Contents/MacOS/finder-reroute --setup-shell
-```
-
-This adds a shell function to your config (Fish/Zsh/Bash) so:
-- `open ~/Downloads` → opens in Bloom
-- `open file.txt` → uses default app (unchanged)
+The app will now start automatically on every login.
 
 ## Project Structure
 
 ```
 ├── FinderReroute.app/          # macOS app bundle (SwiftUI + Rust)
-│   └── Contents/MacOS/
-│       ├── FinderReroute       # SwiftUI menu bar app
-│       └── finder-reroute      # Rust interceptor
-├── src/                        # Rust source
-│   ├── main.rs                 # CLI entry point
-│   ├── lib.rs                  # Library root
-│   ├── tap.rs                  # CGEventTap
-│   ├── detector.rs             # Dock detection
-│   ├── launcher.rs             # App launching
-│   ├── launchd.rs              # LaunchAgent management
-│   └── shell.rs                # Shell override
-├── ui/                         # SwiftUI source
+│   └── Contents/
+│       ├── Info.plist
+│       ├── MacOS/
+│       │   ├── FinderReroute       # SwiftUI menu bar app (main executable)
+│       │   └── finder-reroute      # Rust interceptor (bundled)
+│       └── Resources/
+│           └── AppIcon.icns         # Custom folder icon
+├── src/                          # Rust source
+│   ├── main.rs                   # CLI entry point
+│   ├── lib.rs                    # Library root + shared state
+│   ├── tap.rs                    # CGEventTap installation
+│   ├── detector.rs               # Dock/Finder detection
+│   ├── launcher.rs               # App launching
+│   ├── launchd.rs                # LaunchAgent management
+│   └── shell.rs                  # Shell override injection
+├── ui/                           # SwiftUI source
 │   └── Sources/
-│       ├── FinderRerouteUI.swift
-│       └── ContentView.swift
-├── build.sh                    # Build script
+│       ├── FinderRerouteUI.swift  # App entry + AppState
+│       └── ContentView.swift      # Menu bar UI
+├── build.sh                      # Build script
+├── create_icon.py                # Icon generation script
 ├── Cargo.toml
-└── RESEARCH.md
+└── README.md
 ```
 
 ## Key Design Decisions
 
 1. **Single .app bundle** — The SwiftUI app bundles the Rust binary internally. One app, one entry point.
-2. **Menu bar only** — The app is a background agent. No dock icon, no window.
-3. **Title-based detection** — Checks `AXTitleAttribute == "Finder"`. Future versions will use bundle ID.
+2. **Menu bar only** — The app is a background agent. No dock icon, no window. `LSUIElement` is set.
+3. **Title-based detection** — Checks `AXTitleAttribute == "Finder"`. Future versions will use bundle ID for robustness.
 4. **`open -a` for launching** — Simple, reliable, no need for AppKit bridging.
 5. **Event tap at HID level** — Intercepts clicks before the Dock processes them.
-6. **LaunchAgent for auto-start** — Uses `launchd`. `KeepAlive` with `SuccessfulExit: false` restarts on crashes.
+6. **Head insert placement** — Our tap runs before other taps, giving us first chance to consume the event.
+7. **LaunchAgent for auto-start** — Uses `launchd`. `KeepAlive` with `SuccessfulExit: false` restarts on crashes but not on graceful shutdown.
+8. **Shell override** — Injects a function into shell config to redirect `open` on directories.
+
+## Troubleshooting
+
+### App doesn't appear in menu bar
+- Check if the app is running: `ps aux | grep FinderReroute`
+- Try killing and relaunching: `killall FinderReroute`
+- Check if menu bar is too crowded — close other apps
+
+### Interception not working
+- Grant **Accessibility** permission: System Settings → Privacy & Security → Accessibility → Add `FinderReroute.app`
+- Grant **Input Monitoring** permission if prompted
+- Check logs: `tail -f /tmp/com.alexleekt.finder-reroute.err.log`
+
+### Auto-start not working
+- Check LaunchAgent status: `/Applications/FinderReroute.app/Contents/MacOS/finder-reroute --status`
+- Reinstall: `/Applications/FinderReroute.app/Contents/MacOS/finder-reroute --install`
+- Check logs: `tail -f /tmp/com.alexleekt.finder-reroute.out.log`
 
 ## Future Work
 
-- [ ] Bundle ID detection instead of title matching
+- [ ] Bundle ID detection instead of title matching (robust across languages)
 - [ ] Configurable target app per folder type
 - [ ] Handle Dock in different positions (left, right, bottom)
 - [ ] Multi-monitor support
-- [ ] Hide Finder icon from Dock (requires SIP disable)
+- [ ] Hide Finder icon from Dock (requires SIP disable — not recommended)
+- [ ] Code signing and notarization for distribution
+
+## License
+
+MIT License — See [LICENSE](LICENSE) for details.
+
+## Acknowledgments
+
+- Built with [Rust](https://www.rust-lang.org/) and [SwiftUI](https://developer.apple.com/xcode/swiftui/)
+- Icon generated with Python PIL
