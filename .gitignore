@@ -3,3 +3,13 @@ Cargo.lock
 *.rs.bk
 *.pdb
 .DS_Store
+
+/target
+Cargo.lock
+*.rs.bk
+*.pdb
+.DS_Store
+ui/.build/
+ui/.swiftpm/
+*.xcuserstate
+*.xcworkspace/xcuserdata/
