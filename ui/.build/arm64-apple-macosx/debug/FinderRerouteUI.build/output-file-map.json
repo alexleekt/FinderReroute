@@ -1,0 +1,19 @@
+{
+  "": {
+    "swift-dependencies": "/Users/alexleekt/git/FinderReroute/ui/.build/arm64-apple-macosx/debug/FinderRerouteUI.build/primary.swiftdeps"
+  },
+  "/Users/alexleekt/git/FinderReroute/ui/Sources/FinderRerouteUI/ContentView.swift": {
+    "dependencies": "/Users/alexleekt/git/FinderReroute/ui/.build/arm64-apple-macosx/debug/FinderRerouteUI.build/ContentView.d",
+    "object": "/Users/alexleekt/git/FinderReroute/ui/.build/arm64-apple-macosx/debug/FinderRerouteUI.build/ContentView.swift.o",
+    "swiftmodule": "/Users/alexleekt/git/FinderReroute/ui/.build/arm64-apple-macosx/debug/FinderRerouteUI.build/ContentView~partial.swiftmodule",
+    "swift-dependencies": "/Users/alexleekt/git/FinderReroute/ui/.build/arm64-apple-macosx/debug/FinderRerouteUI.build/ContentView.swiftdeps",
+    "diagnostics": "/Users/alexleekt/git/FinderReroute/ui/.build/arm64-apple-macosx/debug/FinderRerouteUI.build/ContentView.dia"
+  },
+  "/Users/alexleekt/git/FinderReroute/ui/Sources/FinderRerouteUI/FinderRerouteUI.swift": {
+    "dependencies": "/Users/alexleekt/git/FinderReroute/ui/.build/arm64-apple-macosx/debug/FinderRerouteUI.build/FinderRerouteUI.d",
+    "object": "/Users/alexleekt/git/FinderReroute/ui/.build/arm64-apple-macosx/debug/FinderRerouteUI.build/FinderRerouteUI.swift.o",
+    "swiftmodule": "/Users/alexleekt/git/FinderReroute/ui/.build/arm64-apple-macosx/debug/FinderRerouteUI.build/FinderRerouteUI~partial.swiftmodule",
+    "swift-dependencies": "/Users/alexleekt/git/FinderReroute/ui/.build/arm64-apple-macosx/debug/FinderRerouteUI.build/FinderRerouteUI.swiftdeps",
+    "diagnostics": "/Users/alexleekt/git/FinderReroute/ui/.build/arm64-apple-macosx/debug/FinderRerouteUI.build/FinderRerouteUI.dia"
+  }
+}
