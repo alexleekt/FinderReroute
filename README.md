@@ -22,11 +22,11 @@ Launch target app via `open -a`
 
 ## Features
 
-- 🎯 **Intercept Finder clicks** — Clicking the Finder icon in the Dock opens your chosen file manager
-- 🎨 **Menu bar UI** — Simple folder icon in the menu bar to toggle interception and select target app
-- 🚀 **Auto-start** — Optional LaunchAgent to start automatically on login
-- 🐚 **Shell override** — Make `open ~/folder` use your chosen file manager in Terminal
-- ⚙️ **Configurable** — Choose any installed file manager (Bloom, Path Finder, ForkLift, etc.)
+- **Intercept Finder clicks** — Clicking the Finder icon in the Dock opens your chosen file manager
+- **Menu bar UI** — Simple folder icon in the menu bar to toggle interception and select target app
+- **Auto-start** — Optional LaunchAgent to start automatically on login
+- **Shell override** — Make `open ~/folder` use your chosen file manager in Terminal
+- **Configurable** — Choose any installed file manager (Bloom, Path Finder, ForkLift, etc.)
 
 ## Tech Stack
 
