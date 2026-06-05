@@ -163,7 +163,10 @@ The app will now start automatically on every login.
 ├── Cargo.toml                  # Dependencies + Clippy lint config
 ├── .gitignore
 ├── build.sh                      # Build script
-├── create_icon.py                # Icon generation script
+├── dev-scripts/
+│   └── create_icon.py            # Icon generation script
+├── scripts/
+│   └── install.sh                # Install script for releases
 ├── src/                          # Rust source
 │   ├── main.rs                   # CLI entry point
 │   ├── lib.rs                    # Library root + shared state
