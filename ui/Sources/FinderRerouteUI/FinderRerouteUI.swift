@@ -30,7 +30,8 @@ class AppState: ObservableObject {
         self.configPath = "\(home)/.config/finder-reroute/config.json"
 
         // Find the bundled Rust binary relative to the SwiftUI app executable
-        guard let executablePath = Bundle.main.executableURL?.deletingLastPathComponent().appendingPathComponent("finder-reroute").path else {
+        let bundleDir = Bundle.main.executableURL?.deletingLastPathComponent()
+        guard let executablePath = bundleDir?.appendingPathComponent("finder-reroute").path else {
             fatalError("finder-reroute binary not found in app bundle.")
         }
         self.rustBinaryPath = executablePath
