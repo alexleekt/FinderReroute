@@ -55,11 +55,19 @@ You must manually grant these permissions before first use:
 
 ### Option 1: Download the .app bundle
 
-1. Download `FinderReroute.app` from [Releases](../../releases)
-2. Drag it to `/Applications/`
-3. Launch it — the folder icon appears in your menu bar
-4. Click the icon and toggle **"Intercept Finder clicks"**
-5. Grant Accessibility permission when prompted
+1. Download `FinderReroute.app` and `install.sh` from [Releases](../../releases)
+2. Put both in the same folder and run the installer:
+   ```bash
+   ./install.sh
+   ```
+3. On first launch, right-click the app in `/Applications` and select **Open** to bypass Gatekeeper
+4. Grant **Accessibility** and **Input Monitoring** permissions when prompted
+5. Click the menu bar icon and toggle **"Intercept Finder clicks"**
+
+**Without the install script:** If you prefer manual installation, drag `FinderReroute.app` to `/Applications/`, then run:
+```bash
+xattr -d com.apple.quarantine /Applications/FinderReroute.app
+```
 
 ### Option 2: Build from source
 
@@ -251,8 +259,8 @@ The Swift UI provides a menu-bar interface for starting/stopping the interceptor
 - [ ] Handle Dock in different positions (left, right, bottom)
 - [ ] Multi-monitor support
 - [ ] Hide Finder icon from Dock (requires SIP disable — not recommended)
-- [ ] Code signing and notarization for distribution
-- [ ] Add ad-hoc code signing step to `build.sh` for local testing
+- [ ] Code signing and notarization for distribution (requires Apple Developer account)
+- [x] Ad-hoc code signing in `build.sh` for local testing and distribution
 
 ## License
 
