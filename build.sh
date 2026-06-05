@@ -40,7 +40,7 @@ codesign --sign - --force --deep \
 # Create app icon
 echo "Creating app icon..."
 if command -v python3 &> /dev/null && python3 -c "from PIL import Image" 2>/dev/null; then
-    python3 "${SCRIPT_DIR}/create_icon.py"
+    python3 "${SCRIPT_DIR}/scripts/create_icon.py"
 else
     echo "Warning: Python3 with PIL not available. Skipping icon creation."
 fi
