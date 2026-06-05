@@ -31,6 +31,12 @@ cp "${SCRIPT_DIR}/ui/.build/release/${APP_NAME}UI" "${MACOS_DIR}/${APP_NAME}"
 chmod +x "${MACOS_DIR}/finder-reroute"
 chmod +x "${MACOS_DIR}/${APP_NAME}"
 
+# Ad-hoc sign the app bundle (no Developer ID required)
+echo "Ad-hoc signing app bundle..."
+codesign --sign - --force --deep \
+  --options runtime \
+  "${APP_BUNDLE}"
+
 # Create app icon
 echo "Creating app icon..."
 if command -v python3 &> /dev/null && python3 -c "from PIL import Image" 2>/dev/null; then
