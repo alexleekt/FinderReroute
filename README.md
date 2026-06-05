@@ -212,6 +212,25 @@ The app will now start automatically on every login.
 - Check logs: `tail -f /tmp/com.alexleekt.finder-reroute.out.log`
 - Note: Both Accessibility and Input Monitoring permissions are required for the auto-start LaunchAgent.
 
+### Gatekeeper blocks the app on first launch
+macOS adds a **quarantine flag** to apps downloaded from the internet. Because FinderReroute uses ad-hoc signing (no paid Apple Developer certificate), Gatekeeper will block it on first launch.
+
+**Option A — Right-click → Open (recommended):**
+1. Find `FinderReroute.app` in `/Applications/`
+2. **Right-click** → **Open**
+3. Click **Open** in the dialog
+4. macOS adds an exception; future launches work with double-click
+
+**Option B — Remove the quarantine attribute manually:**
+```bash
+xattr -d com.apple.quarantine /Applications/FinderReroute.app
+```
+
+**Option C — Use the install script (handles this automatically):**
+```bash
+./install.sh
+```
+
 ## Development
 
 ### Linting
