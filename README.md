@@ -45,7 +45,11 @@ Launch target app via `open -a`
 - **Accessibility** permission — Required for `AXUIElementCopyElementAtPosition`
 - **Input Monitoring** permission — Required for `CGEventTap` (HID-level tap)
 
-The app will prompt you to grant these permissions on first launch.
+You must manually grant these permissions before first use:
+
+> System Settings → Privacy & Security → Accessibility → + → Add `FinderReroute.app`
+>
+> System Settings → Privacy & Security → Input Monitoring → + → Add `FinderReroute.app`
 
 ## Installation
 
@@ -168,7 +172,6 @@ The app will now start automatically on every login.
 │   └── Sources/FinderRerouteUI/
 │       ├── FinderRerouteUI.swift  # App entry + AppState
 │       └── ContentView.swift      # Menu bar UI
-├── RESEARCH.md                   # Research notes on prior art
 └── README.md
 ```
 
@@ -176,11 +179,11 @@ The app will now start automatically on every login.
 
 1. **Single .app bundle** — The SwiftUI app bundles the Rust binary internally. One app, one entry point.
 2. **Menu bar only** — The app is a background agent. No dock icon, no window. `LSUIElement` is set.
-3. **Title-based detection** — Checks `AXTitleAttribute == "Finder"`. Future versions will use bundle ID for robustness.
+3. **Title-based detection** (known limitation) — Checks `AXTitleAttribute == "Finder"`. Bundle ID detection is planned for a future release.
 4. **`open -a` for launching** — Simple, reliable, no need for AppKit bridging.
 5. **Event tap at HID level** — Intercepts clicks before the Dock processes them.
 6. **Head insert placement** — Our tap runs before other taps, giving us first chance to consume the event.
-7. **LaunchAgent for auto-start** — Uses `launchd`. `KeepAlive` with `SuccessfulExit: false` restarts on crashes but not on graceful shutdown.
+7. **LaunchAgent for auto-start** — Uses `launchd`. `KeepAlive` with `SuccessfulExit: false` and `ThrottleInterval` (60s) restarts on crashes with a cooldown.
 8. **Shell override** — Injects a function into shell config to redirect `open` on directories.
 
 ## Troubleshooting
@@ -192,13 +195,14 @@ The app will now start automatically on every login.
 
 ### Interception not working
 - Grant **Accessibility** permission: System Settings → Privacy & Security → Accessibility → Add `FinderReroute.app`
-- Grant **Input Monitoring** permission if prompted
+- Grant **Input Monitoring** permission: System Settings → Privacy & Security → Input Monitoring → Add `FinderReroute.app`
 - Check logs: `tail -f /tmp/com.alexleekt.finder-reroute.err.log`
 
 ### Auto-start not working
 - Check LaunchAgent status: `/Applications/FinderReroute.app/Contents/MacOS/finder-reroute --status`
 - Reinstall: `/Applications/FinderReroute.app/Contents/MacOS/finder-reroute --install`
 - Check logs: `tail -f /tmp/com.alexleekt.finder-reroute.out.log`
+- Note: Both Accessibility and Input Monitoring permissions are required for the auto-start LaunchAgent.
 
 ## Development
 
@@ -248,6 +252,7 @@ The Swift UI provides a menu-bar interface for starting/stopping the interceptor
 - [ ] Multi-monitor support
 - [ ] Hide Finder icon from Dock (requires SIP disable — not recommended)
 - [ ] Code signing and notarization for distribution
+- [ ] Add ad-hoc code signing step to `build.sh` for local testing
 
 ## License
 

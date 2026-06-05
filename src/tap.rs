@@ -1,7 +1,7 @@
-use core_foundation::runloop::{CFRunLoop, kCFRunLoopCommonModes};
+use core_foundation::runloop::{kCFRunLoopCommonModes, CFRunLoop};
 use core_graphics::event::{
-    CGEvent, CGEventTap, CGEventTapLocation, CGEventTapOptions, CGEventTapPlacement,
-    CGEventType, CallbackResult,
+    CGEvent, CGEventTap, CGEventTapLocation, CGEventTapOptions, CGEventTapPlacement, CGEventType,
+    CallbackResult,
 };
 use log::{debug, error, info, warn};
 use std::sync::atomic::Ordering;
@@ -9,10 +9,16 @@ use std::sync::Arc;
 
 use crate::detector::DockDetector;
 use crate::launcher::AppLauncher;
-use crate::RewireState;
+use crate::RerouteState;
+
+/// Opaque event-type constants for out-of-band tap status messages.
+const TAP_DISABLED_BY_TIMEOUT: u32 = 0xFFFF_FFFE;
+const TAP_DISABLED_BY_USER_INPUT: u32 = 0xFFFF_FFFF;
 
 /// Manages the `CGEventTap` lifecycle.
 pub struct EventTap {
+    /// The tap is kept alive to prevent the `CGEventTap` from being dropped,
+    /// which would disable the tap. This field is intentionally unused.
     #[allow(dead_code)]
     tap: CGEventTap<'static>,
 }
@@ -25,17 +31,17 @@ impl EventTap {
     /// Returns [`EventTapError::CreateFailed`] if the `CGEventTap` cannot be created,
     /// or [`EventTapError::RunLoopSourceFailed`] if the run-loop source fails.
     pub fn new(
-        state: Arc<RewireState>,
+        state: Arc<RerouteState>,
         detector: DockDetector,
         launcher: AppLauncher,
     ) -> Result<Self, EventTapError> {
-        let events = vec![CGEventType::LeftMouseDown];
+        let events = [CGEventType::LeftMouseDown];
 
         let tap = CGEventTap::new(
             CGEventTapLocation::HID,
             CGEventTapPlacement::HeadInsertEventTap,
             CGEventTapOptions::Default,
-            events,
+            events.to_vec(),
             move |_proxy, event_type, event| {
                 handle_event(event_type, event, &state, &detector, &launcher)
             },
@@ -48,7 +54,13 @@ impl EventTap {
             .map_err(|()| EventTapError::RunLoopSourceFailed)?;
 
         let run_loop = CFRunLoop::get_current();
-        run_loop.add_source(&run_loop_source, unsafe { kCFRunLoopCommonModes });
+        run_loop.add_source(&run_loop_source, unsafe {
+            // SAFETY: kCFRunLoopCommonModes is a well-known Core Foundation constant
+            // that is always valid and never mutated. The core-foundation crate exposes
+            // it as an extern static, and using it as a run-loop mode is the standard
+            // safe pattern documented in Apple's CFRunLoop API.
+            kCFRunLoopCommonModes
+        });
         tap.enable();
 
         info!("Event tap installed for LeftMouseDown");
@@ -75,19 +87,17 @@ pub enum EventTapError {
 fn handle_event(
     event_type: CGEventType,
     event: &CGEvent,
-    state: &Arc<RewireState>,
+    state: &RerouteState,
     detector: &DockDetector,
     launcher: &AppLauncher,
 ) -> CallbackResult {
     // Handle special out-of-band events that disable the tap.
     match event_type as u32 {
-        0xFFFF_FFFE => {
-            // TapDisabledByTimeout
+        TAP_DISABLED_BY_TIMEOUT => {
             warn!("Event tap disabled by timeout.");
             return CallbackResult::Keep;
         }
-        0xFFFF_FFFF => {
-            // TapDisabledByUserInput
+        TAP_DISABLED_BY_USER_INPUT => {
             warn!("Event tap disabled by user input.");
             return CallbackResult::Keep;
         }

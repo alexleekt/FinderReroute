@@ -26,7 +26,7 @@ struct ContentView: View {
                 }
             }
             .pickerStyle(.menu)
-            .labelsHidden()
+            .accessibilityLabel("Open folders with")
 
             Button("Scan for Apps") {
                 appState.scanApps()
@@ -43,6 +43,7 @@ struct ContentView: View {
                 set: { _ in appState.toggleRunning() }
             ))
             .toggleStyle(.switch)
+            .accessibilityHint("When on, clicking the Finder icon in the Dock opens your chosen file manager instead.")
 
             // Status
             Text(appState.statusMessage)

@@ -10,6 +10,7 @@ struct FinderRerouteUIApp: App {
                 .environmentObject(appState)
         } label: {
             Image(systemName: "folder")
+                .accessibilityLabel("FinderReroute")
         }
         .menuBarExtraStyle(.window)
     }
@@ -29,12 +30,10 @@ class AppState: ObservableObject {
         self.configPath = "\(home)/.config/finder-reroute/config.json"
 
         // Find the bundled Rust binary relative to the SwiftUI app executable
-        if let executablePath = Bundle.main.executableURL?.deletingLastPathComponent().appendingPathComponent("finder-reroute").path {
-            self.rustBinaryPath = executablePath
-        } else {
-            // Fallback to development path
-            self.rustBinaryPath = "/Users/alexleekt/git/FinderReroute/target/release/finder-reroute"
+        guard let executablePath = Bundle.main.executableURL?.deletingLastPathComponent().appendingPathComponent("finder-reroute").path else {
+            fatalError("finder-reroute binary not found in app bundle.")
         }
+        self.rustBinaryPath = executablePath
 
         let saved = Self.loadConfig(configPath)
         self.selectedApp = saved?["app"] as? String ?? "Bloom"
@@ -90,13 +89,8 @@ class AppState: ObservableObject {
     }
 
     func stop() {
-        let task = Process()
-        task.launchPath = "/usr/bin/pkill"
-        task.arguments = ["-f", rustBinaryPath]
-        try? task.run()
-        task.waitUntilExit()
-
         process?.terminate()
+        process?.waitUntilExit()
         process = nil
         isRunning = false
         statusMessage = "Stopped"

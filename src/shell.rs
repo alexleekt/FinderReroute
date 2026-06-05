@@ -44,44 +44,52 @@ fn config_path() -> Option<PathBuf> {
     }
 }
 
-/// The marker comment we use to identify our injected code.
-const SHELL_MARKER: &str = "# FinderReroute: open command override";
+/// Start marker for the injected shell override block.
+const SHELL_START: &str = "# FinderReroute: open command override BEGIN";
+/// End marker for the injected shell override block.
+const SHELL_END: &str = "# FinderReroute: open command override END";
 
 /// Generate the shell code that overrides the `open` command.
-fn shell_override_code() -> String {
+fn shell_override_code(app_name: &str) -> String {
     if is_fish() {
         format!(
-            r#"{SHELL_MARKER}
+            r#"{SHELL_START}
 function open
     if test -d "$argv[1]"
-        command open -a Bloom $argv
+        command open -a {app_name} $argv
     else
         command open $argv
     end
 end
+{SHELL_END}
 "#
         )
     } else {
         format!(
-            r#"{SHELL_MARKER}
+            r#"{SHELL_START}
 open() {{
     if [ -d "$1" ]; then
-        command open -a Bloom "$@"
+        command open -a {app_name} "$@"
     else
         command open "$@"
     fi
 }}
+{SHELL_END}
 "#
         )
     }
 }
 
-/// Install the shell override so `open` on directories opens in Bloom.
+/// Install the shell override so `open` on directories opens in the target app.
+///
+/// # Arguments
+///
+/// * `app_name` — The name of the app to open directories with (e.g., "Bloom").
 ///
 /// # Errors
 ///
 /// Returns an error if the shell config file cannot be read or written.
-pub fn install() -> Result<(), String> {
+pub fn install(app_name: &str) -> Result<(), String> {
     let config =
         config_path().ok_or("Could not detect shell config file. Supported: fish, zsh, bash")?;
 
@@ -105,11 +113,13 @@ pub fn install() -> Result<(), String> {
 
     // Append the new override.
     content.push('\n');
-    content.push_str(&shell_override_code());
+    content.push_str(&shell_override_code(app_name));
     content.push('\n');
 
-    // Write back.
-    fs::write(&config, content).map_err(|e| format!("Failed to write config file: {e}"))?;
+    // Write atomically (tmp file + rename) to avoid corrupting the shell config.
+    let tmp = config.with_extension("tmp");
+    fs::write(&tmp, content).map_err(|e| format!("Failed to write temp file: {e}"))?;
+    fs::rename(&tmp, &config).map_err(|e| format!("Failed to rename temp file: {e}"))?;
 
     Ok(())
 }
@@ -155,7 +165,7 @@ pub fn is_installed() -> bool {
         return false;
     };
 
-    content.contains(SHELL_MARKER)
+    content.contains(SHELL_START)
 }
 
 /// Print shell status.
@@ -169,32 +179,32 @@ pub fn print_status() {
     println!("  Config:    {config}");
     println!("  Installed: {}", if installed { "yes" } else { "no" });
     if installed {
-        println!("  Behavior:  Directories open with Bloom; files use default app.");
+        println!("  Behavior:  Directories open with the configured app; files use default app.");
     }
 }
 
-/// Remove our override from shell config content.
+/// Remove our override block from shell config content.
+///
+/// Matches lines between `SHELL_START` and `SHELL_END` (inclusive) and
+/// strips them, preserving the rest of the file.
 fn remove_override_from_content(content: &str) -> String {
     let mut result = String::new();
     let mut skip = false;
 
     for line in content.lines() {
-        if line.trim() == SHELL_MARKER {
+        let trimmed = line.trim();
+        if trimmed == SHELL_START {
             skip = true;
             continue;
         }
-        if skip {
-            // Skip until we hit a blank line or end of our block.
-            // We detect the end by checking if the line is a comment marker
-            // or a function definition that doesn't belong to our block.
-            if line.trim().is_empty() {
-                skip = false;
-            }
-            // Continue skipping...
+        if trimmed == SHELL_END {
+            skip = false;
             continue;
         }
-        result.push_str(line);
-        result.push('\n');
+        if !skip {
+            result.push_str(line);
+            result.push('\n');
+        }
     }
 
     result

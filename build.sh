@@ -17,7 +17,7 @@ cargo build --release
 # Build SwiftUI binary
 echo "Building SwiftUI binary..."
 cd "${SCRIPT_DIR}/ui"
-swift build
+swift build -c release
 
 # Create app bundle structure
 echo "Creating app bundle..."
@@ -27,7 +27,7 @@ mkdir -p "${RESOURCES_DIR}"
 # Copy binaries
 echo "Copying binaries..."
 cp "${SCRIPT_DIR}/target/release/finder-reroute" "${MACOS_DIR}/"
-cp "${SCRIPT_DIR}/ui/.build/debug/${APP_NAME}UI" "${MACOS_DIR}/${APP_NAME}"
+cp "${SCRIPT_DIR}/ui/.build/release/${APP_NAME}UI" "${MACOS_DIR}/${APP_NAME}"
 chmod +x "${MACOS_DIR}/finder-reroute"
 chmod +x "${MACOS_DIR}/${APP_NAME}"
 

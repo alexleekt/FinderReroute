@@ -1,40 +1,33 @@
 use axuielement::prelude::*;
 use log::{debug, trace};
-use std::sync::atomic::{AtomicBool, Ordering};
+
+/// The Finder title to match (localized, but "Finder" works for English).
+const FINDER_TITLE: &str = "Finder";
+/// The Dock subrole for app icons.
+const APP_DOCK_SUBROLE: &str = "AXApplicationDockItem";
 
 /// Detects whether a mouse click is on the Finder icon in the Dock.
-#[derive(Debug)]
-pub struct DockDetector {
-    /// Whether detection is enabled.
-    enabled: AtomicBool,
-    /// The Finder title to match (localized, but "Finder" works for English).
-    finder_title: String,
-    /// The Dock subrole for app icons.
-    app_dock_subrole: String,
-}
+#[derive(Debug, Default)]
+pub struct DockDetector;
 
 impl DockDetector {
     #[must_use]
-    pub fn new() -> Self {
-        Self {
-            enabled: AtomicBool::new(true),
-            finder_title: "Finder".to_string(),
-            app_dock_subrole: "AXApplicationDockItem".to_string(),
-        }
+    pub const fn new() -> Self {
+        Self
     }
 
     /// Check if the click at (x, y) is on the Finder Dock icon.
+    #[must_use]
     pub fn is_finder_click(&self, x: f64, y: f64) -> bool {
-        if !self.enabled.load(Ordering::Relaxed) {
-            return false;
-        }
-
         // Hit-test the element at the click position.
         let Some(system) = system_wide() else {
             trace!("system_wide accessibility element not available");
             return false;
         };
 
+        // SAFETY: macOS screen coordinates are well within f32 exact-integer range
+        // (< 16M pixels) even for multi-monitor setups. The axuielement API expects
+        // f32, so this cast is necessary and safe.
         #[allow(clippy::cast_possible_truncation)]
         let element = match system.element_at_position(x as f32, y as f32) {
             Ok(Some(e)) => e,
@@ -56,7 +49,7 @@ impl DockDetector {
             return false;
         };
 
-        if subrole != self.app_dock_subrole {
+        if subrole != APP_DOCK_SUBROLE {
             trace!("subrole='{subrole}' — not an app dock item");
             return false;
         }
@@ -71,25 +64,11 @@ impl DockDetector {
 
         debug!("Dock app item at ({x}, {y}): title='{title}' subrole='{subrole}'");
 
-        if title == self.finder_title {
+        if title == FINDER_TITLE {
             return true;
         }
 
         trace!("title='{title}' — not Finder");
         false
-    }
-
-    pub fn enable(&self) {
-        self.enabled.store(true, Ordering::Relaxed);
-    }
-
-    pub fn disable(&self) {
-        self.enabled.store(false, Ordering::Relaxed);
-    }
-}
-
-impl Default for DockDetector {
-    fn default() -> Self {
-        Self::new()
     }
 }

@@ -1,43 +1,67 @@
 pub mod detector;
-pub mod launcher;
 pub mod launchd;
+pub mod launcher;
 pub mod shell;
 pub mod tap;
 
 use log::info;
+use std::path::PathBuf;
 use std::sync::atomic::AtomicBool;
-use std::sync::Arc;
 
 /// Check if the process has been granted Accessibility permission.
-#[must_use] 
+#[must_use]
 pub fn has_accessibility_permission() -> bool {
     axuielement::is_process_trusted()
 }
 
-/// Prompt the user to grant Accessibility permission.
+/// Log instructions for granting Accessibility permission.
+///
+/// Note: The app does not show a system dialog automatically.
+/// The user must manually grant the permission in System Settings.
 pub fn prompt_accessibility_permission() {
-    // Calling is_process_trusted_with_prompt would show the system dialog
-    // For now, we just log and exit; the user must grant it manually.
     info!("Accessibility permission required. Please grant it in System Settings > Privacy & Security > Accessibility.");
+}
+
+/// Read the target app name from the shared config file.
+///
+/// Returns the app name from `~/.config/finder-reroute/config.json`
+/// (written by the `SwiftUI` menu bar app), or `"Bloom"` as a fallback.
+#[must_use]
+pub fn read_config_app() -> String {
+    let home = std::env::var("HOME").unwrap_or_default();
+    let path = PathBuf::from(home).join(".config/finder-reroute/config.json");
+
+    if let Ok(content) = std::fs::read_to_string(&path) {
+        if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
+            if let Some(app) = json.get("app").and_then(|v| v.as_str()) {
+                return app.to_string();
+            }
+        }
+    }
+
+    "Bloom".to_string()
 }
 
 /// Shared state for the event tap callback.
 #[derive(Debug)]
-pub struct RewireState {
+pub struct RerouteState {
     /// Whether the tap is currently enabled.
     pub enabled: AtomicBool,
-    /// The target app to launch instead of Finder.
-    pub target_app: String,
-    /// The bundle ID to intercept (default: com.apple.finder).
-    pub target_bundle_id: String,
+    /// The app to launch instead of Finder (e.g., "Bloom").
+    pub replacement_app: String,
+    /// The bundle ID of the app to intercept (default: com.apple.finder).
+    pub intercepted_bundle_id: String,
 }
 
-impl RewireState {
-    pub fn new(target_app: impl Into<String>, target_bundle_id: impl Into<String>) -> Arc<Self> {
-        Arc::new(Self {
+impl RerouteState {
+    pub fn new(
+        replacement_app: impl Into<String>,
+        intercepted_bundle_id: impl Into<String>,
+    ) -> Self {
+        Self {
             enabled: AtomicBool::new(true),
-            target_app: target_app.into(),
-            target_bundle_id: target_bundle_id.into(),
-        })
+            replacement_app: replacement_app.into(),
+            intercepted_bundle_id: intercepted_bundle_id.into(),
+        }
     }
 }

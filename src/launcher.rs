@@ -25,10 +25,7 @@ impl AppLauncher {
     pub fn launch(&self) -> Result<(), LauncherError> {
         info!("Launching '{}' via open -a", self.app_name);
 
-        let _child = Command::new("open")
-            .args(["-a", &self.app_name])
-            .spawn()
-            .map_err(|e| LauncherError::SpawnFailed(e.to_string()))?;
+        let _child = Command::new("open").args(["-a", &self.app_name]).spawn()?;
 
         // Child runs independently; we don't wait so the tap callback
         // returns immediately.
@@ -43,14 +40,21 @@ impl AppLauncher {
     ///
     /// # Errors
     ///
-    /// Returns [`LauncherError::SpawnFailed`] if the `open` command fails to spawn.
+    /// Returns [`LauncherError::InvalidPath`] if the path looks like a flag
+    /// (starts with `-`), or [`LauncherError::SpawnFailed`] if the `open`
+    /// command fails to spawn.
     pub fn open_with(&self, path: &str) -> Result<(), LauncherError> {
+        if path.starts_with('-') {
+            return Err(LauncherError::InvalidPath(
+                "Path cannot start with '-'".to_string(),
+            ));
+        }
+
         info!("Opening '{}' with '{}'", path, self.app_name);
 
         let _child = Command::new("open")
             .args(["-a", &self.app_name, path])
-            .spawn()
-            .map_err(|e| LauncherError::SpawnFailed(e.to_string()))?;
+            .spawn()?;
 
         // Child runs independently; we don't wait so the tap callback
         // returns immediately.
@@ -69,7 +73,9 @@ impl Default for AppLauncher {
 #[derive(Debug, thiserror::Error)]
 pub enum LauncherError {
     #[error("Failed to spawn `open` command: {0}")]
-    SpawnFailed(String),
+    SpawnFailed(#[from] std::io::Error),
     #[error("App launch failed: {0}")]
     LaunchFailed(String),
+    #[error("Invalid path: {0}")]
+    InvalidPath(String),
 }

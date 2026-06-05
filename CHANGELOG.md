@@ -24,8 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Planned
-- Bundle ID detection for robust cross-language support
+### Roadmap
+- Bundle ID detection for robust cross-language support (Swift UI partially implements this)
 - Per-folder-type app selection
 - Multi-monitor support
 - Dock position awareness (left, right, bottom)

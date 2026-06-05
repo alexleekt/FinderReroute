@@ -41,7 +41,7 @@ pub fn app_bundle_path() -> PathBuf {
 /// Generate the `LaunchAgent` plist XML.
 fn plist_content() -> String {
     let app_path = app_bundle_path().display().to_string();
-    let binary = format!("{}/Contents/MacOS/FinderReroute", app_path);
+    let binary = format!("{app_path}/Contents/MacOS/FinderReroute");
     format!(
         r#"<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -60,6 +60,10 @@ fn plist_content() -> String {
         <key>SuccessfulExit</key>
         <false/>
     </dict>
+    <key>ThrottleInterval</key>
+    <integer>60</integer>
+    <key>ProcessType</key>
+    <string>Background</string>
     <key>StandardOutPath</key>
     <string>/tmp/{LAUNCHD_LABEL}.out.log</string>
     <key>StandardErrorPath</key>
@@ -93,8 +97,11 @@ pub fn install() -> Result<(), String> {
     fs::write(&plist, content).map_err(|e| format!("Failed to write plist: {e}"))?;
 
     // Load the LaunchAgent.
+    let plist_str = plist
+        .to_str()
+        .ok_or("LaunchAgent plist path contains invalid UTF-8")?;
     let status = Command::new("launchctl")
-        .args(["load", "-w", plist.to_str().unwrap()])
+        .args(["load", "-w", plist_str])
         .status()
         .map_err(|e| format!("Failed to run launchctl load: {e}"))?;
 
@@ -132,8 +139,11 @@ pub fn uninstall() -> Result<(), String> {
     }
 
     // Unload the LaunchAgent.
+    let plist_str = plist
+        .to_str()
+        .ok_or("LaunchAgent plist path contains invalid UTF-8")?;
     let status = Command::new("launchctl")
-        .args(["unload", "-w", plist.to_str().unwrap()])
+        .args(["unload", "-w", plist_str])
         .status()
         .map_err(|e| format!("Failed to run launchctl unload: {e}"))?;
 
@@ -156,14 +166,12 @@ pub fn is_installed() -> bool {
 /// Check if the `LaunchAgent` is currently running.
 #[must_use]
 pub fn is_running() -> bool {
-    let output = Command::new("launchctl")
+    let Ok(output) = Command::new("launchctl")
         .args(["list", LAUNCHD_LABEL])
         .output()
-        .unwrap_or_else(|_| std::process::Output {
-            status: std::process::ExitStatus::default(),
-            stdout: vec![],
-            stderr: vec![],
-        });
+    else {
+        return false;
+    };
     output.status.success()
 }
 

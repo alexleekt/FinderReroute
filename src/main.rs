@@ -1,7 +1,10 @@
 use finder_reroute::detector::DockDetector;
 use finder_reroute::launcher::AppLauncher;
 use finder_reroute::tap::EventTap;
-use finder_reroute::{has_accessibility_permission, prompt_accessibility_permission, RewireState};
+use finder_reroute::{
+    has_accessibility_permission, prompt_accessibility_permission, read_config_app, RerouteState,
+};
+use std::sync::Arc;
 
 #[allow(clippy::too_many_lines)]
 fn main() {
@@ -54,11 +57,12 @@ fn main() {
                 return;
             }
             "--setup-shell" => {
+                let app_name = read_config_app();
                 println!("Installing shell override for `open` command...");
-                match finder_reroute::shell::install() {
+                match finder_reroute::shell::install(&app_name) {
                     Ok(()) => {
                         println!("✓ Shell override installed.");
-                        println!("  Directories now open with Bloom.");
+                        println!("  Directories now open with {app_name}.");
                         println!();
                         println!("  Reload your shell or run:");
                         if finder_reroute::shell::is_fish() {
@@ -114,21 +118,25 @@ fn main() {
 
     println!("✓ Accessibility permission granted.");
 
-    // 2. Build the rewire state.
-    let state = RewireState::new("Bloom", "com.apple.finder");
-    let detector = DockDetector::new();
-    let launcher = AppLauncher::new("Bloom");
+    // 2. Read the configured app from the shared config.
+    let app_name = read_config_app();
+    println!("✓ Target app: {app_name}");
 
-    // 3. Install the event tap.
+    // 3. Build the reroute state.
+    let state = Arc::new(RerouteState::new(&app_name, "com.apple.finder"));
+    let detector = DockDetector::new();
+    let launcher = AppLauncher::new(&app_name);
+
+    // 4. Install the event tap.
     let tap = match EventTap::new(state, detector, launcher) {
         Ok(tap) => {
-            println!("✓ Event tap installed. Click the Finder icon to open Bloom.");
+            println!("✓ Event tap installed. Click the Finder icon to open {app_name}.");
             println!("  Press Ctrl-C to quit.");
             tap
         }
         Err(e) => {
             eprintln!("ERROR: Failed to create event tap: {e}");
-            eprintln!("Make sure Accessibility permission is granted.");
+            eprintln!("Make sure Accessibility and Input Monitoring permissions are granted.");
             std::process::exit(1);
         }
     };
